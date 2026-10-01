@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preposto - Vigilanza e segnalazione</title>
+<style>
+  :root{
+    --bg:#eef1f5; --paper:#fff; --ink:#1f2733; --muted:#5b6673; --line:#d5dbe3;
+    --accent:#1f4e79; --accent-soft:#eaf1f8; --ok:#1a7f4b; --ok-bg:#e7f5ec;
+    --err:#c0261e; --err-bg:#fbeae9; --fieldbg:#fbfcfe;
+    --xls:#217346; --xls-head:#e8efe9; --xls-line:#c6c6c6; --xls-num:#f2f2f2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;padding:22px 14px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;}
+  .sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    box-shadow:0 6px 24px rgba(20,40,70,.08);margin-bottom:20px;}
+  .top{background:var(--accent);color:#fff;padding:18px 26px;}
+  .top .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;}
+  .top h1{margin:4px 0 0;font-size:20px;font-weight:650;}
+  .body{padding:20px 26px 26px;}
+  h2.sec{font-size:16px;color:var(--accent);border-bottom:2px solid var(--accent-soft);padding-bottom:6px;margin:6px 0 14px;}
+  .legend{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 15px;border-radius:6px;font-size:13.5px;margin-bottom:18px;}
+  .legend b{color:var(--accent);}
+  .sys{border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-bottom:14px;background:var(--fieldbg);}
+  .sys h3{margin:0 0 4px;font-size:15px;}
+  .sys .desc{font-size:13.5px;color:var(--muted);margin-bottom:12px;}
+  .sys .signal{font-size:13.5px;background:#fff;border:1px dashed var(--line);border-left:3px solid var(--accent);padding:8px 11px;border-radius:5px;margin-bottom:12px;}
+  .sys .signal b{color:var(--accent);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+  label.f{display:block;font-size:13px;font-weight:600;margin-bottom:5px;}
+  select{width:100%;padding:9px 10px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit;}
+  select:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+  .cell{border-radius:6px;padding:2px;}
+  .cell.correct{box-shadow:0 0 0 2px var(--ok);} .cell.wrong{box-shadow:0 0 0 2px var(--err);}
+  .fb{font-size:12.5px;margin-top:5px;display:none;}
+  .cell.correct .fb,.cell.wrong .fb{display:block;}
+  .cell.correct .fb{color:var(--ok);} .cell.wrong .fb{color:var(--err);}
+  .actions{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:14.5px;font-weight:600;border:none;border-radius:8px;padding:11px 20px;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#173d5e;}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .btn-xls{background:var(--xls);color:#fff;} .btn-xls:hover{background:#1a5c38;}
+  .note{font-size:13px;color:var(--muted);margin-top:10px;}
+  .locked{opacity:.5;pointer-events:none;}
+  .hidden{display:none;}
+  .xlsbar{background:var(--xls);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px 6px 0 0;}
+  .xls-scroll{overflow-x:auto;border:1px solid var(--xls-line);border-top:none;border-radius:0 0 6px 6px;}
+  table.xls{border-collapse:collapse;width:100%;font-size:12.5px;min-width:820px;background:#fff;}
+  table.xls th,table.xls td{border:1px solid var(--xls-line);padding:6px 9px;text-align:left;vertical-align:top;}
+  table.xls thead th{background:var(--xls-head);font-weight:700;}
+  table.xls .rownum{background:var(--xls-num);text-align:center;color:var(--muted);font-weight:600;width:26px;}
+  table.xls .collet{background:var(--xls-num);text-align:center;color:var(--muted);font-weight:600;}
+  td.prio-alta{color:var(--err);font-weight:800;background:#fdeceb;}
+  td.date-red{color:var(--err);font-weight:800;background:#fdeceb;}
+  #doc{border:1px solid var(--line);border-radius:8px;padding:24px;font-size:13.5px;}
+  #doc h3.mh{color:var(--accent);font-size:14.5px;border-bottom:1px solid var(--line);padding-bottom:4px;margin:18px 0 8px;}
+  #doc .subt{color:var(--muted);font-size:12.5px;margin:-6px 0 12px;}
+  #doc .kv{display:grid;grid-template-columns:250px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted var(--line);}
+  #doc .kv .k{color:var(--muted);} #doc .kv .v{font-weight:600;}
+  #doc .redflag{color:var(--err);font-weight:800;}
+  #doc .ph{color:var(--accent);font-style:italic;font-weight:500;}
+  .stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--err);border:2px solid var(--err);background:var(--err-bg);}
+  .firme{margin-top:18px;font-size:13px;} .firme .row{margin:10px 0;}
+  footer{font-size:12px;color:var(--muted);text-align:center;padding:10px;}
+  @media print{ body{background:#fff;padding:0;} .no-print{display:none !important;} .sheet{border:none;box-shadow:none;} #doc{border:none;padding:0;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="sheet">
+    <div class="top">
+      <div class="kicker">Aggiornamento Preposto · IA e sicurezza sul lavoro · Serious game</div>
+      <h1>Vigilanza sui segnali e segnalazione</h1>
+    </div>
+    <div class="body">
+      <div class="legend">
+        <b>Il compito del preposto in tre mosse.</b> Il sistema predittivo genera un <b>segnale</b>;
+        il preposto ne valuta l'<b>urgenza per la sicurezza</b>, adotta subito la <b>misura cautelare</b>
+        che gli compete e <b>segnala</b> a chi deve intervenire. Non diagnostica il guasto né esegue la
+        riparazione: quello spetta alla manutenzione.<br>
+        <span class="note">Tempistica di segnalazione adottata nell'esercitazione: <b>immediata</b> per l'urgenza alta,
+        <b>in giornata</b> per la media, <b>nel flusso ordinario</b> per la bassa.</span>
+      </div>
+
+      <!-- PASSO 1 -->
+      <h2 class="sec">Passo 1 — Valuta il segnale e decidi l'azione di vigilanza</h2>
+      <p class="note" style="margin-top:-6px">Per ogni macchina leggi il <b>segnale del sistema</b>, indica l'<b>urgenza
+        per la sicurezza</b> e l'<b>azione del preposto</b>. Poi premi <b>Salva nel registro</b>.</p>
+
+      <form id="reg">
+        <div class="sys">
+          <h3>Macchina 1 — Carroponte 12,5 t (reparto produzione)</h3>
+          <div class="desc">Apparecchio di sollevamento monitorato con sensori su fune e freno.</div>
+          <div class="signal"><b>Segnale del sistema:</b> allarme su fune e freno — perdita di sezione fune 6,5% (soglia 5%) e tempo di slittamento freno 320 ms (soglia 200 ms), in progressione; vita residua stimata molto bassa.</div>
+          <div class="grid2">
+            <div><label class="f">Urgenza per la sicurezza</label>
+              <div class="cell" data-correct="Alta">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Azione del preposto</label>
+              <div class="cell" data-correct="Fermare subito l'uso e segnalare senza ritardo">
+                <select><option value="">— seleziona —</option><option>Fermare subito l'uso e segnalare senza ritardo</option><option>Sostituire la fune e registrare il freno</option><option>Proseguire e annotare a fine turno</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="sys">
+          <h3>Macchina 2 — Compressore d'aria</h3>
+          <div class="desc">Compressore a vite con sensori di vibrazione e temperatura.</div>
+          <div class="signal"><b>Segnale del sistema:</b> vibrazione crescente sui cuscinetti e lieve aumento della temperatura di esercizio, senza anomalie improvvise.</div>
+          <div class="grid2">
+            <div><label class="f">Urgenza per la sicurezza</label>
+              <div class="cell" data-correct="Media">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Azione del preposto</label>
+              <div class="cell" data-correct="Rafforzare la sorveglianza e segnalare alla manutenzione">
+                <select><option value="">— seleziona —</option><option>Rafforzare la sorveglianza e segnalare alla manutenzione</option><option>Fermare subito l'intero impianto</option><option>Attendere il guasto prima di agire</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="sys">
+          <h3>Macchina 3 — Nastro trasportatore</h3>
+          <div class="desc">Nastro di linea con misura dell'assorbimento elettrico del motore.</div>
+          <div class="signal"><b>Segnale del sistema:</b> lieve aumento graduale dell'assorbimento elettrico del motore, senza altri sintomi.</div>
+          <div class="grid2">
+            <div><label class="f">Urgenza per la sicurezza</label>
+              <div class="cell" data-correct="Bassa">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Azione del preposto</label>
+              <div class="cell" data-correct="Monitorare e segnalare nel flusso ordinario">
+                <select><option value="">— seleziona —</option><option>Monitorare e segnalare nel flusso ordinario</option><option>Fermare subito la linea</option><option>Intervenire di persona sul motore</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-xls" id="saveReg">Salva nel registro</button>
+          <button type="button" class="btn-ghost" id="resetReg">Ricomincia</button>
+        </div>
+      </form>
+
+      <div id="regOut" class="hidden" style="margin-top:20px">
+        <div class="xlsbar">📊 registro-segnalazioni.xlsx — foglio "Vigilanza preposto"</div>
+        <div class="xls-scroll"><table class="xls" id="regTable"></table></div>
+        <p class="note" id="regMsg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 2 -->
+  <div class="sheet">
+    <div class="top" style="background:#7a2e2e">
+      <div class="kicker">Passo 2 · solo per il segnale a urgenza alta</div>
+      <h1>Scheda di segnalazione del preposto — Carroponte 12,5 t</h1>
+    </div>
+    <div class="body">
+      <div id="step2lock" class="legend">Completa e salva il <b>Passo 1</b>: per il segnale a <b>urgenza alta</b> compiliamo questa scheda di segnalazione.</div>
+
+      <div id="step2form" class="locked">
+        <p class="note" style="margin-top:0">Il segnale è critico per la sicurezza: compila la scheda di segnalazione, poi premi <b>Verifica scheda</b>.</p>
+        <form id="doc0">
+          <div class="sys">
+            <div class="grid2">
+              <div><label class="f">1 · Cosa ho osservato</label>
+                <div class="cell" data-correct="Allarme del sistema predittivo su fune e freno del carroponte">
+                  <select><option value="">— seleziona —</option><option>Allarme del sistema predittivo su fune e freno del carroponte</option><option>Guasto elettrico del motore di sollevamento</option><option>Rumore generico non meglio identificato</option></select><div class="fb"></div></div></div>
+              <div><label class="f">2 · Urgenza per la sicurezza</label>
+                <div class="cell" data-correct="Alta — rischio di caduta del carico sospeso">
+                  <select><option value="">— seleziona —</option><option>Alta — rischio di caduta del carico sospeso</option><option>Media — solo fermo produzione</option><option>Bassa — nessun rischio immediato</option></select><div class="fb"></div></div></div>
+              <div><label class="f">3 · Misura cautelare immediata adottata</label>
+                <div class="cell" data-correct="Interdire l'uso del carroponte e l'area sottostante e avvisare gli operatori">
+                  <select><option value="">— seleziona —</option><option>Interdire l'uso del carroponte e l'area sottostante e avvisare gli operatori</option><option>Sostituire la fune e il gruppo freno</option><option>Ridurre la velocità e proseguire il lavoro</option></select><div class="fb"></div></div></div>
+              <div><label class="f">4 · A chi segnalo</label>
+                <div class="cell" data-correct="Al datore di lavoro e all'ufficio manutenzione">
+                  <select><option value="">— seleziona —</option><option>Al datore di lavoro e all'ufficio manutenzione</option><option>Al fornitore del software predittivo</option><option>A nessuno, provvedo da solo</option></select><div class="fb"></div></div></div>
+              <div><label class="f">5 · Tempistica della segnalazione</label>
+                <div class="cell" data-correct="Immediata, senza ritardo">
+                  <select><option value="">— seleziona —</option><option>Immediata, senza ritardo</option><option>Alla prossima riunione di reparto</option><option>A fine mese con il report</option></select><div class="fb"></div></div></div>
+              <div><label class="f">6 · Limite del mio ruolo</label>
+                <div class="cell" data-correct="Non eseguo la riparazione: spetta a personale qualificato">
+                  <select><option value="">— seleziona —</option><option>Non eseguo la riparazione: spetta a personale qualificato</option><option>Decido e realizzo io la sostituzione della fune</option><option>Rimetto in servizio dopo un controllo visivo</option></select><div class="fb"></div></div></div>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn-primary" id="checkDoc">Verifica scheda</button>
+            <button type="button" class="btn-ghost hidden" id="viewDoc">Visualizza documento</button>
+          </div>
+          <p class="note" id="docMsg"></p>
+        </form>
+      </div>
+
+      <div id="docOut" class="hidden" style="margin-top:18px">
+        <div id="doc"></div>
+        <div class="actions no-print" style="margin-top:14px">
+          <button type="button" class="btn-primary" id="printDoc">Stampa / Salva come PDF</button>
+          <button type="button" class="btn-ghost" id="closeDoc">Torna alla compilazione</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="no-print">Compilazione a scopo formativo · nessun dato viene salvato</footer>
+</div>
+
+<script>
+(function(){
+  function shuffleSelects(){
+    Array.prototype.forEach.call(document.querySelectorAll('select'),function(sel){
+      var rest=Array.prototype.slice.call(sel.options).filter(function(o){return o.value!=='';});
+      for(var i=rest.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=rest[i];rest[i]=rest[j];rest[j]=t;}
+      rest.forEach(function(o){sel.removeChild(o);});
+      rest.forEach(function(o){sel.appendChild(o);});
+    });
+  }
+  shuffleSelects();
+
+  var SEGN={'Alta':'Immediata','Media':'In giornata','Bassa':'Ordinaria'};
+  var MAC=[
+    {id:'SG-2026-001',nome:'Carroponte 12,5 t',seg:'Allarme fune + freno (soglie superate)'},
+    {id:'SG-2026-002',nome:'Compressore d’aria',seg:'Vibrazione cuscinetti + temperatura in aumento'},
+    {id:'SG-2026-003',nome:'Nastro trasportatore',seg:'Assorbimento elettrico in lieve aumento'}
+  ];
+
+  function gradeCell(c){
+    var sel=c.querySelector('select'),want=c.getAttribute('data-correct'),got=sel.value,fb=c.querySelector('.fb');
+    c.classList.remove('correct','wrong');
+    if(got===want){c.classList.add('correct');fb.textContent='✓ corretto';return true;}
+    c.classList.add('wrong');fb.textContent=got?('✗ corretto: '+want):('✗ da compilare — corretto: '+want);return false;
+  }
+
+  var regCells=Array.prototype.slice.call(document.querySelectorAll('#reg .cell'));
+  document.getElementById('saveReg').addEventListener('click',function(){
+    regCells.forEach(gradeCell);
+    buildRegister();
+    document.getElementById('regOut').classList.remove('hidden');
+    document.getElementById('step2lock').classList.add('hidden');
+    document.getElementById('step2form').classList.remove('locked');
+    document.getElementById('regOut').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  document.getElementById('resetReg').addEventListener('click',function(){
+    regCells.forEach(function(c){c.classList.remove('correct','wrong');c.querySelector('select').value='';});
+    document.getElementById('regOut').classList.add('hidden');
+  });
+  function selVal(i,j){return document.querySelectorAll('#reg .sys')[i].querySelectorAll('select')[j].value;}
+  function buildRegister(){
+    var cols=['','A','B','C','D','E','F'];
+    var head=['#','ID','Macchina','Segnale','Urgenza','Azione del preposto','Segnalazione'];
+    var html='<thead><tr>';
+    cols.forEach(function(c,k){html+='<th class="collet">'+(k===0?'':c)+'</th>';});
+    html+='</tr><tr>';
+    head.forEach(function(h,k){html+='<th'+(k===0?' class="rownum"':'')+'>'+h+'</th>';});
+    html+='</tr></thead><tbody>';
+    for(var i=0;i<3;i++){
+      var urg=selVal(i,0), az=selVal(i,1);
+      var segn = urg? SEGN[urg] : '—';
+      var pc=(urg==='Alta')?' class="prio-alta"':'';
+      var dc=(urg==='Alta')?' class="date-red"':'';
+      html+='<tr><td class="rownum">'+(i+2)+'</td>';
+      html+='<td>'+MAC[i].id+'</td><td>'+MAC[i].nome+'</td><td>'+MAC[i].seg+'</td>';
+      html+='<td'+pc+'>'+(urg||'—')+'</td><td>'+(az||'—')+'</td>';
+      html+='<td'+dc+'>'+segn+'</td></tr>';
+    }
+    html+='</tbody>';
+    document.getElementById('regTable').innerHTML=html;
+    document.getElementById('regMsg').innerHTML='<b>Nota.</b> L\'urgenza determina la tempistica della segnalazione (immediata / in giornata / ordinaria). Il carroponte è a <b>urgenza alta</b> — urgenza e segnalazione evidenziate in rosso — perché un cedimento della fune metterebbe a rischio le persone: apre la <b>scheda di segnalazione</b> del Passo 2. Gli altri due restano righe di registro da sorvegliare.';
+  }
+
+  // PASSO 2
+  var docCells=Array.prototype.slice.call(document.querySelectorAll('#doc0 .cell'));
+  document.getElementById('checkDoc').addEventListener('click',function(){
+    var ok=0; docCells.forEach(function(c){ if(gradeCell(c)) ok++; });
+    var msg=document.getElementById('docMsg');
+    if(ok===docCells.length){
+      msg.textContent='Scheda di segnalazione completa e coerente con il ruolo del preposto. Ora puoi visualizzare e stampare il documento.';
+      document.getElementById('viewDoc').classList.remove('hidden');
+    } else {
+      msg.textContent='Punteggio '+ok+'/'+docCells.length+'. Correggi i campi in rosso: il preposto mette in sicurezza e segnala senza ritardo, ma non esegue la riparazione tecnica.';
+      document.getElementById('viewDoc').classList.add('hidden');
+    }
+  });
+  document.getElementById('viewDoc').addEventListener('click',function(){
+    document.getElementById('doc').innerHTML = `
+      <span class="stamp">⚠️ SEGNALAZIONE DEL PREPOSTO — URGENZA ALTA</span>
+      <div class="subt">Vigilanza su segnale del sistema predittivo — apparecchio di sollevamento</div>
+      <div class="kv"><span class="k">ID Segnalazione</span><span class="v">SG-2026-001</span></div>
+      <div class="kv"><span class="k">Macchina</span><span class="v">Carroponte 12,5 t — Reparto Produzione</span></div>
+      <div class="kv"><span class="k">Data e ora</span><span class="v">21/09/2026 — <span class="ph">[ora]</span></span></div>
+      <div class="kv"><span class="k">Preposto</span><span class="v ph">[nome e cognome]</span></div>
+      <div class="kv"><span class="k">Tempistica</span><span class="v redflag">SEGNALAZIONE IMMEDIATA — senza ritardo</span></div>
+
+      <h3 class="mh">1 · Cosa è stato osservato</h3>
+      <div class="kv"><span class="k">Segnale rilevato</span><span class="v">Allarme del sistema predittivo su fune e freno del carroponte (soglie di allerta superate e in progressione).</span></div>
+
+      <h3 class="mh">2 · Valutazione dell'urgenza</h3>
+      <div class="kv"><span class="k">Urgenza per la sicurezza</span><span class="v redflag">Alta — rischio di caduta del carico sospeso</span></div>
+      <div class="kv"><span class="k">Persone esposte</span><span class="v">Operatori e addetti in transito nell'area sottostante e nel raggio di manovra del carroponte.</span></div>
+
+      <h3 class="mh">3 · Misura cautelare adottata dal preposto</h3>
+      <div class="kv"><span class="k">Intervento immediato</span><span class="v">Interdizione dell'uso del carroponte e dell'area sottostante; operatori avvisati e allontanati dalla zona a rischio.</span></div>
+
+      <h3 class="mh">4 · Segnalazione</h3>
+      <div class="kv"><span class="k">Segnalato a</span><span class="v">Datore di lavoro e ufficio manutenzione (per conoscenza all'RSPP).</span></div>
+      <div class="kv"><span class="k">Quando</span><span class="v redflag">Immediatamente, senza ritardo.</span></div>
+
+      <h3 class="mh">5 · Limite del ruolo</h3>
+      <div class="kv"><span class="k">Cosa non compete al preposto</span><span class="v">La riparazione tecnica (sostituzione fune, verifica del freno) e la rimessa in servizio spettano a personale qualificato, su decisione del datore/manutenzione.</span></div>
+
+      <h3 class="mh">Firme</h3>
+      <div class="firme">
+        <div class="row">Preposto: ______________________  Data: ___________</div>
+        <div class="row">Ricevuta da (Datore / Manutenzione): ______________________  Data: ___________</div>
+      </div>
+      <p class="note">Documento di vigilanza a scopo formativo — buona prassi di segnalazione; non sostituisce le procedure aziendali.</p>`;
+    document.getElementById('docOut').classList.remove('hidden');
+    document.getElementById('docOut').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  document.getElementById('printDoc').addEventListener('click',function(){
+    var inner=document.getElementById('doc').innerHTML;
+    var css='body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2733;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.5;font-size:13.5px}'+
+      'h3.mh{color:#1f4e79;font-size:14.5px;border-bottom:1px solid #d5dbe3;padding-bottom:4px;margin:18px 0 8px}'+
+      '.subt{color:#5b6673;font-size:12.5px;margin:-6px 0 12px}'+
+      '.kv{display:grid;grid-template-columns:250px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted #d5dbe3}'+
+      '.kv .k{color:#5b6673}.kv .v{font-weight:600}.redflag{color:#c0261e;font-weight:800}.ph{color:#1f4e79;font-style:italic}'+
+      '.stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:#c0261e;border:2px solid #c0261e;background:#fbeae9}'+
+      '.firme{margin-top:18px;font-size:13px}.firme .row{margin:10px 0}.note{font-size:12px;color:#5b6673;margin-top:12px}';
+    var html='<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Segnalazione del preposto — Carroponte</title><style>'+css+'</style></head><body>'+inner+'</body></html>';
+    var w=window.open('','_blank');
+    if(!w){alert('Abilita le finestre popup del browser per stampare o salvare in PDF.');return;}
+    w.document.open();w.document.write(html);w.document.close();w.focus();
+    setTimeout(function(){w.print();},300);
+  });
+  document.getElementById('closeDoc').addEventListener('click',function(){document.getElementById('docOut').classList.add('hidden');});
+})();
+</script>
+</body>
+</html>
